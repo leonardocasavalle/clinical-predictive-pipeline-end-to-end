@@ -1,0 +1,41 @@
+# Arquitectura de Despliegue, MLOps e Impacto de Negocio
+
+Este documento describe la infraestructura tecnológica propuesta para llevar el pipeline predictivo a producción, la estrategia de monitoreo continuo del modelo y la evaluación del Retorno de la Inversión (ROI).
+
+---
+
+## 1. Diseño de la Arquitectura de Despliegue (Pipeline End-to-End)
+
+Para garantizar la automatización del proceso desde la extracción de datos en SQL hasta la disponibilidad de las predicciones, se propone una arquitectura desacoplada basada en microservicios:
+### Flujo Técnico:
+1. **Ingección y Orquestación:** Un orquestador de tareas ejecuta de manera programada (ej. todas las noches) las consultas optimizadas del repositorio de extracción SQL.
+2. **Procesamiento en Lote (Batch):** El script `cleaning_pipeline.py` toma los datos crudos de la base de datos, aplica las reglas de imputación y normalización, y genera la matriz de características.
+3. **Servicio de Alertas:** El modelo entrenado procesa los datos limpios y genera un score de riesgo (0 a 100%) para cada paciente internado próximo a recibir el alta. Estos datos se guardan en una tabla de salida.
+4. **Consumo de Negocio:** El tablero de control (BI) consume esa tabla de salida, mostrando de forma visual el listado de pacientes críticos para que el equipo médico aplique protocolos de seguimiento proactivo antes del alta.
+
+---
+
+## 2. Monitoreo Continuo y Gestión de Desviación de Datos (Data Drift)
+
+En el ámbito clínico, las patologías cambian según la estacionalidad (invierno vs. verano) y los protocolos médicos evolucionan. Si el perfil de los pacientes cambia respecto al dataset de entrenamiento, el modelo perderá precisión.
+
+### Estrategia de Mitigación:
+* **Detección de Data Drift:** Implementar un script de monitoreo periódico que compare la distribución estadística de las variables de entrada actuales contra las de entrenamiento utilizando pruebas estadísticas (como el test de Kolmogorov-Smirnov para variables numéricas).
+* **Alertas de Degradación:** Si una variable crítica (ej. promedio de días de estadía o resultados de laboratorios específicos) sufre una desviación estadística significativa ($p\text{-value} < 0.05$), el sistema dispara una alerta al equipo de datos.
+* **Estrategia de Reentrenamiento:** Al acumularse alertas de drift o si el KPI técnico del modelo (Recall) cae por debajo del 70%, se gatilla un pipeline de reentrenamiento automatizado utilizando los datos clínicos del último trimestre.
+
+---
+
+## 3. Evaluación de Impacto Financiero e Indicadores de Retorno (ROI)
+
+Para justificar la implementación del sistema ante la dirección de la clínica o laboratorio, transformamos las métricas técnicas en valor monetario:
+
+### Modelo de Negocio e Impacto:
+* **Costo de una Readmisión Evitable:** Supongamos un costo operativo e insumos promedio de **$200.000 ARS** por cada paciente que reingresa de forma imprevista antes de los 30 días.
+* **Volumen Hospitalario:** Una clínica mediana registra un promedio de **100 readmisiones mensuales** ($20.000.000 ARS mensuales de gasto).
+* **Meta del Proyecto:** Reducir un **15%** las readmisiones mediante alertas tempranas (evitar 15 readmisiones al mes).
+
+### Cálculo del Retorno de Inversión (ROI):
+* **Ahorro Bruto Mensual:** 15 readmisiones evitadas $\times$ $200.000 ARS = **$3.000.000 ARS al mes**.
+* **Ahorro Anual Proyectado:** **$36.000.000 ARS**.
+* **Costo de Infraestructura y Datos:** El costo de desarrollo del pipeline, horas de ingeniería y servidores se recupera completamente dentro de los **primeros 3 o 4 meses** de operación en producción, demostrando la alta viabilidad económica del proyecto de Data Science.
